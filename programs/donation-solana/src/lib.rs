@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use std::collections::HashSet;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -19,7 +20,9 @@ pub mod donation_solana {
         lamports: u64,
     ) -> std::result::Result<(), anchor_lang::prelude::ProgramError> {
         let donation_account = &mut ctx.accounts.donation_account;
-        donation_account.donators_list.push(ctx.accounts.user.key());
+        donation_account
+            .donators_list
+            .insert(ctx.accounts.user.key());
 
         let ix = anchor_lang::solana_program::system_instruction::transfer(
             &ctx.accounts.user.key(),
@@ -37,9 +40,7 @@ pub mod donation_solana {
     }
 
     //withdraw all donates to owner
-    pub fn withdraw(
-        ctx: Context<Withdraw>,
-    ) -> std::result::Result<(), anchor_lang::prelude::ProgramError> {
+    pub fn withdraw(ctx: Context<Withdraw>) -> std::result::Result<(), ProgramError> {
         if ctx.accounts.user.key() != ctx.accounts.donation_account.owner {
             return Err(ProgramError::IllegalOwner);
         }
@@ -57,6 +58,15 @@ pub mod donation_solana {
             ],
         )
     }
+
+    //return list of donators
+    pub fn get_all_donators(ctx: Context<AllDonators>) -> Result<HashSet<Pubkey>> {
+        let mut donators_list: HashSet<Pubkey> = HashSet::new();
+        for x in ctx.accounts.donation_account.donators_list.iter() {
+            donators_list.insert(*x);
+        }
+        Ok(donators_list)
+    }
 }
 
 //data for initialize function
@@ -73,7 +83,7 @@ pub struct Initialize<'info> {
 //main program account that hold business logic
 #[account]
 pub struct DonationAccount {
-    pub donators_list: Vec<Pubkey>,
+    pub donators_list: HashSet<Pubkey>,
     pub owner: Pubkey,
 }
 
@@ -88,6 +98,13 @@ pub struct Donation<'info> {
 //withdraw function data context
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
+    #[account(mut)]
+    pub donation_account: Account<'info, DonationAccount>,
+    pub user: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct AllDonators<'info> {
     #[account(mut)]
     pub donation_account: Account<'info, DonationAccount>,
     pub user: Signer<'info>,
