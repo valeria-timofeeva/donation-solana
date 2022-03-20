@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
-use std::collections::HashSet;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("3vKFQUmdGGiHR6hK3tQ1JJnD3YCF4b4ktDUutgCsgScG");
 
 #[program]
 pub mod donation_solana {
@@ -22,7 +21,7 @@ pub mod donation_solana {
         let donation_account = &mut ctx.accounts.donation_account;
         donation_account
             .donators_list
-            .insert(ctx.accounts.user.key());
+            .push(ctx.accounts.user.key());
 
         let ix = anchor_lang::solana_program::system_instruction::transfer(
             &ctx.accounts.user.key(),
@@ -60,10 +59,10 @@ pub mod donation_solana {
     }
 
     //return list of donators
-    pub fn get_all_donators(ctx: Context<AllDonators>) -> Result<HashSet<Pubkey>> {
-        let mut donators_list: HashSet<Pubkey> = HashSet::new();
+    pub fn get_all_donators(ctx: Context<AllDonators>) -> Result<Vec<Pubkey>> {
+        let mut donators_list: Vec<Pubkey> = Vec::new();
         for x in ctx.accounts.donation_account.donators_list.iter() {
-            donators_list.insert(*x);
+            donators_list.push(*x);
         }
         Ok(donators_list)
     }
@@ -83,7 +82,8 @@ pub struct Initialize<'info> {
 //main program account that hold business logic
 #[account]
 pub struct DonationAccount {
-    pub donators_list: HashSet<Pubkey>,
+   // pub donators_list: HashSet<Pubkey>,
+    pub donators_list: Vec<Pubkey>,
     pub owner: Pubkey,
 }
 

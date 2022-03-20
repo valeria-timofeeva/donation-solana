@@ -1,7 +1,7 @@
 [features]
 seeds = false
 [programs.localnet]
-donation_solana = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+donation_solana = "3vKFQUmdGGiHR6hK3tQ1JJnD3YCF4b4ktDUutgCsgScG"
 
 [registry]
 url = "https://anchor.projectserum.com"
