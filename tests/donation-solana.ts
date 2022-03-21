@@ -37,11 +37,11 @@ describe("donation-solana", () => {
 
   it("Should make donation", async () => {
     await provider.connection.confirmTransaction(
-      await provider.connection.requestAirdrop(donator.publicKey, 10000000000),
+      await provider.connection.requestAirdrop(donator.publicKey, 1),
       "confirmed"
     );
 
-    const tx = await program.rpc.makeDonation(new anchor.BN(100), {
+    const tx = await program.rpc.makeDonation(new anchor.BN(1), {
       accounts: {
         donationAccount: donationAccount.publicKey,
         user: donator.publicKey,
@@ -50,7 +50,7 @@ describe("donation-solana", () => {
     });
 
     const donationBalance = await program.account.donationAccount.getAccountInfo(donator.publicKey)
-    assert.equal(donationBalance.lamports.toString(), "100")
+    assert.equal(donationBalance.lamports.toString(), "1")
   });
 
   it("Should fail if not owner try to withdraw", async () => {
@@ -85,6 +85,7 @@ describe("donation-solana", () => {
       },
       signers: [donator1],
     });
+
     const tx2 = await program.rpc.makeDonation(new anchor.BN(100), {
       accounts: {
         donationAccount: donationAccount.publicKey,
@@ -101,7 +102,28 @@ describe("donation-solana", () => {
   });
 
   it("Should return all donation for selected donator", async () => {
-    //todo fn
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(donator.publicKey, 1),
+      "confirmed"
+    );
+
+    const tx = await program.rpc.makeDonation(new anchor.BN(1), {
+      accounts: {
+        donationAccount: donationAccount.publicKey,
+        user: donator.publicKey,
+      },
+      signers: [donator],
+    });
+
+    const ix = await program.rpc.getDonationsForAddress(donator.publicKey, {
+      accounts: {
+        donationAccount: donationAccount.publicKey,
+        user: donator.publicKey,
+      },
+      signers: [donationAccount]
+    });
+
+    //to check result fn getDonationsForAddress
   });
 });
 

@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use std::collections::BTreeMap;
 
 declare_id!("3vKFQUmdGGiHR6hK3tQ1JJnD3YCF4b4ktDUutgCsgScG");
 
@@ -21,7 +22,7 @@ pub mod donation_solana {
         let donation_account = &mut ctx.accounts.donation_account;
         donation_account
             .donators_list
-            .push(ctx.accounts.user.key());
+            .insert(ctx.accounts.user.key(), lamports);
 
         let ix = anchor_lang::solana_program::system_instruction::transfer(
             &ctx.accounts.user.key(),
@@ -61,10 +62,20 @@ pub mod donation_solana {
     //return list of donators
     pub fn get_all_donators(ctx: Context<AllDonators>) -> Result<Vec<Pubkey>> {
         let mut donators_list: Vec<Pubkey> = Vec::new();
-        for x in ctx.accounts.donation_account.donators_list.iter() {
-            donators_list.push(*x);
+        for (key, _value) in ctx.accounts.donation_account.donators_list.iter() {
+            donators_list.push(*key);
         }
         Ok(donators_list)
+    }
+
+    pub fn get_donations_for_address(ctx: Context<Donator>, address: Pubkey) -> Result<u64> {
+        let donation_account = &mut ctx.accounts.donation_account;
+        let donaton_amount = donation_account.donators_list.get(&address);
+
+        match donaton_amount {
+            Some(amount) => Ok(*amount),
+            None => Ok(0)
+        }
     }
 }
 
@@ -83,7 +94,7 @@ pub struct Initialize<'info> {
 #[account]
 pub struct DonationAccount {
    // pub donators_list: HashSet<Pubkey>,
-    pub donators_list: Vec<Pubkey>,
+    pub donators_list: BTreeMap<Pubkey, u64>,
     pub owner: Pubkey,
 }
 
@@ -109,3 +120,11 @@ pub struct AllDonators<'info> {
     pub donation_account: Account<'info, DonationAccount>,
     pub user: Signer<'info>,
 }
+
+#[derive(Accounts)]
+pub struct Donator<'info> {
+    #[account(mut)]
+    pub donation_account: Account<'info, DonationAccount>,
+    pub user: Signer<'info>,
+}
+
