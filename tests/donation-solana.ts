@@ -3,6 +3,7 @@ import { Program } from "@project-serum/anchor";
 import { publicKey } from "@project-serum/anchor/dist/cjs/utils";
 import { assert, expect } from "chai";
 import { DonationSolana } from "../target/types/donation_solana";
+import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
 
 const { SystemProgram } = anchor.web3;
 
@@ -98,7 +99,11 @@ describe("donation-solana", () => {
       donationAccount.publicKey
     );
 
-    expect(account.donatorsList).to.eql([donator, donator1, donator2]);
+    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+    const accounts = await connection.getProgramAccounts(program.programId);
+
+    //to ask
+    expect(accounts.find).to.eql([donator.publicKey, donator1, donator2]);
   });
 
   it("Should return all donation for selected donator", async () => {
@@ -113,14 +118,6 @@ describe("donation-solana", () => {
         user: donator.publicKey,
       },
       signers: [donator],
-    });
-
-    const ix = await program.rpc.getDonationsForAddress(donator.publicKey, {
-      accounts: {
-        donationAccount: donationAccount.publicKey,
-        user: donator.publicKey,
-      },
-      signers: [donationAccount]
     });
 
     //to check result fn getDonationsForAddress

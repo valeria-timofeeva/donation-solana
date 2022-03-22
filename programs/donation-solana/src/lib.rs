@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use std::collections::BTreeMap;
 
 declare_id!("3vKFQUmdGGiHR6hK3tQ1JJnD3YCF4b4ktDUutgCsgScG");
 
@@ -19,11 +18,7 @@ pub mod donation_solana {
         ctx: Context<Donation>,
         lamports: u64,
     ) -> std::result::Result<(), anchor_lang::prelude::ProgramError> {
-        let donation_account = &mut ctx.accounts.donation_account;
-        donation_account
-            .donators_list
-            .insert(ctx.accounts.user.key(), lamports);
-
+        ctx.accounts.donator.amount = ctx.accounts.donator.amount + lamports;
         let ix = anchor_lang::solana_program::system_instruction::transfer(
             &ctx.accounts.user.key(),
             &ctx.accounts.donation_account.key(),
@@ -41,10 +36,6 @@ pub mod donation_solana {
 
     //withdraw all donates to owner
     pub fn withdraw(ctx: Context<Withdraw>) -> std::result::Result<(), ProgramError> {
-        if ctx.accounts.user.key() != ctx.accounts.donation_account.owner {
-            return Err(ProgramError::IllegalOwner);
-        }
-
         let ix = anchor_lang::solana_program::system_instruction::transfer(
             &ctx.accounts.donation_account.key(),
             &ctx.accounts.donation_account.owner,
@@ -57,25 +48,6 @@ pub mod donation_solana {
                 ctx.accounts.user.to_account_info(),
             ],
         )
-    }
-
-    //return list of donators
-    pub fn get_all_donators(ctx: Context<AllDonators>) -> Result<Vec<Pubkey>> {
-        let mut donators_list: Vec<Pubkey> = Vec::new();
-        for (key, _value) in ctx.accounts.donation_account.donators_list.iter() {
-            donators_list.push(*key);
-        }
-        Ok(donators_list)
-    }
-
-    pub fn get_donations_for_address(ctx: Context<Donator>, address: Pubkey) -> Result<u64> {
-        let donation_account = &mut ctx.accounts.donation_account;
-        let donaton_amount = donation_account.donators_list.get(&address);
-
-        match donaton_amount {
-            Some(amount) => Ok(*amount),
-            None => Ok(0)
-        }
     }
 }
 
@@ -93,8 +65,6 @@ pub struct Initialize<'info> {
 //main program account that hold business logic
 #[account]
 pub struct DonationAccount {
-   // pub donators_list: HashSet<Pubkey>,
-    pub donators_list: BTreeMap<Pubkey, u64>,
     pub owner: Pubkey,
 }
 
@@ -103,6 +73,8 @@ pub struct DonationAccount {
 pub struct Donation<'info> {
     #[account(mut)]
     pub donation_account: Account<'info, DonationAccount>,
+    #[account(seeds = [b"seed".as_ref()], bump)]
+    pub donator: Account<'info, Donator>,
     pub user: Signer<'info>,
 }
 
@@ -111,6 +83,7 @@ pub struct Donation<'info> {
 pub struct Withdraw<'info> {
     #[account(mut)]
     pub donation_account: Account<'info, DonationAccount>,
+    #[account(owner = user.key())]
     pub user: Signer<'info>,
 }
 
@@ -121,10 +94,8 @@ pub struct AllDonators<'info> {
     pub user: Signer<'info>,
 }
 
-#[derive(Accounts)]
-pub struct Donator<'info> {
-    #[account(mut)]
-    pub donation_account: Account<'info, DonationAccount>,
-    pub user: Signer<'info>,
+#[account]
+#[derive(Default)]
+pub struct Donator {
+    pub amount: u64,
 }
-
